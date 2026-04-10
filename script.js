@@ -1,41 +1,44 @@
 const video = document.getElementById("bg-video");
+const fxVideo = document.getElementById("fx-video");
 const audioState = document.getElementById("audio-state");
 const audioGate = document.getElementById("audio-gate");
 const audioUnlock = document.getElementById("audio-unlock");
 const soundButton = document.getElementById("sound-button");
 const chaosButton = document.getElementById("chaos-button");
-const killfeed = document.getElementById("killfeed");
-const burstLayer = document.getElementById("burst-layer");
+const videoFallback = document.getElementById("video-fallback");
+const wordPop = document.getElementById("word-pop");
+const impactFlash = document.getElementById("impact-flash");
+const memeLayer = document.getElementById("meme-layer");
+const rootStyle = document.documentElement.style;
 
-const burstPhrases = [
-  "MLG!",
-  "HEADSHOT",
-  "PINNED",
-  "ULTRA COMBO",
-  "AIRHORN",
-  "CRITICAL HIT",
-  "GG",
-  "SHEEEEEESH",
-  "DROPPED",
-  "ABSOLUTE CINEMA",
+const impactCues = [
+  { label: "PIN", time: 0.34 },
+  { label: "BUP", time: 3.32 },
+  { label: "PIN", time: 5.02 },
+  { label: "BUP", time: 8.18 },
 ];
 
-const feedEntries = [
-  "PIN hit a <strong>420-degree no-scope</strong> on boredom.",
-  "Soundboard.exe activated <strong>bass drop mode</strong>.",
-  "Video loop gained <strong>+999 aura</strong>.",
-  "Browser tab equipped <strong>elite clown energy</strong>.",
-  "Chaos engine landed a <strong>clean montage wipe</strong>.",
-  "Aura multiplier increased to <strong>x64</strong>.",
-  "Pinball wizard unlocked <strong>airhorn overdrive</strong>.",
-  "Random nonsense reached <strong>ranked-play intensity</strong>.",
+const memeImages = [
+  "59cb7ef94a591663eec998de76973499.jpg",
+  "DS5kbTfU8AALe_p.jpg",
+  "Horse-3d-model-6.jpg",
+  "badly-drawn-flat-dog-doodles-jay-cartner-fb19-png__700.jpg",
+  "bg,f8f8f8-flat,750x,075,f-pad,750x1000,f8f8f8.jpg",
+  "images.jpeg",
+  "reverse_horse_drawing_meme_by_beckykidus_dfzzsfm-pre.jpg",
 ];
 
 let chaosBooted = false;
 let audioContext;
 let soundLoopTimer;
-let visualsTimer;
-let titleTimer;
+let memeTimer;
+let cueLoopFrame = 0;
+let lastVideoTime = 0;
+let nextCueIndex = 0;
+let hitResetTimer = 0;
+let wordPopTimer = 0;
+let fxSourceNode;
+let fxGainNode;
 
 function setAudioLabel(text, tone = "status-hot") {
   audioState.textContent = text;
@@ -102,10 +105,58 @@ function playCoin() {
   playTone({ type: "triangle", start: 1240, end: 1660, duration: 0.1, gain: 0.06, pan: -0.08 });
 }
 
+function playImpactStab(label) {
+  if (label === "PIN") {
+    playLaser();
+    playCoin();
+    return;
+  }
+
+  playBassDrop();
+  playTone({ type: "square", start: 96, end: 76, duration: 0.22, gain: 0.09, pan: -0.18 });
+}
+
 function playRandomEffect() {
   const picks = [playAirhorn, playLaser, playBassDrop, playCoin];
   const pick = picks[Math.floor(Math.random() * picks.length)];
   pick();
+}
+
+function setVideoPose(scale, x, y) {
+  rootStyle.setProperty("--video-scale", scale.toFixed(3));
+  rootStyle.setProperty("--video-x", `${x.toFixed(1)}px`);
+  rootStyle.setProperty("--video-y", `${y.toFixed(1)}px`);
+}
+
+function ensureFxAudioBoost() {
+  const ctx = getAudioContext();
+  if (!ctx || fxSourceNode || !fxVideo) return;
+
+  fxSourceNode = ctx.createMediaElementSource(fxVideo);
+  fxGainNode = ctx.createGain();
+  fxGainNode.gain.value = 1.85;
+  fxSourceNode.connect(fxGainNode);
+  fxGainNode.connect(ctx.destination);
+}
+
+async function playFxVideo() {
+  if (!fxVideo) return true;
+
+  try {
+    ensureFxAudioBoost();
+  } catch (error) {
+    // Ignore duplicate media source graph errors and fall back to element volume.
+  }
+
+  fxVideo.muted = false;
+  fxVideo.volume = 1;
+
+  try {
+    await fxVideo.play();
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 async function unlockAudio() {
@@ -119,6 +170,7 @@ async function unlockAudio() {
 
   try {
     await video.play();
+    await playFxVideo();
     setAudioLabel("LIVE", "status-hot");
     audioGate.classList.add("hidden");
     if (!chaosBooted) bootChaos();
@@ -139,6 +191,7 @@ async function attemptAutoplay() {
 
   try {
     await video.play();
+    await playFxVideo();
     setAudioLabel("HOT MIC", "status-hot");
     audioGate.classList.add("hidden");
     bootChaos();
@@ -147,6 +200,10 @@ async function attemptAutoplay() {
     video.muted = true;
     try {
       await video.play();
+      if (fxVideo) {
+        fxVideo.muted = true;
+        await fxVideo.play();
+      }
     } catch (ignored) {
       // Leave the gate visible if even muted autoplay fails.
     }
@@ -156,49 +213,109 @@ async function attemptAutoplay() {
   }
 }
 
-function spawnBurst(x = Math.random() * window.innerWidth, y = Math.random() * window.innerHeight) {
-  const burst = document.createElement("div");
-  burst.className = "burst";
-  burst.textContent = burstPhrases[Math.floor(Math.random() * burstPhrases.length)];
-  burst.style.setProperty("--x", `${x}px`);
-  burst.style.setProperty("--y", `${y}px`);
-  burst.style.setProperty("--rotate", `${-18 + Math.random() * 36}deg`);
-  burst.style.setProperty(
-    "--burst-color",
-    ["#d8ff2a", "#23f4ff", "#ff2bc2", "#ff8b2b", "#ffffff"][Math.floor(Math.random() * 5)],
-  );
-  burstLayer.appendChild(burst);
-  window.setTimeout(() => burst.remove(), 1200);
-}
-
-function pushKillfeedEntry() {
-  const entry = document.createElement("div");
-  entry.className = "killfeed-entry";
-  entry.innerHTML = feedEntries[Math.floor(Math.random() * feedEntries.length)];
-  killfeed.prepend(entry);
-
-  while (killfeed.children.length > 6) {
-    killfeed.lastElementChild.remove();
+function resetCueTracking() {
+  lastVideoTime = video.currentTime;
+  nextCueIndex = impactCues.findIndex((cue) => cue.time > video.currentTime);
+  if (nextCueIndex === -1) {
+    nextCueIndex = impactCues.length;
   }
 }
 
-function startVisualLoop() {
-  pushKillfeedEntry();
+function showWordPop(label) {
+  wordPop.textContent = label;
+  wordPop.classList.remove("hidden", "word-pop-live");
+  void wordPop.offsetWidth;
+  wordPop.classList.add("word-pop-live");
 
-  visualsTimer = window.setInterval(() => {
-    pushKillfeedEntry();
-    spawnBurst();
-  }, 1700);
+  window.clearTimeout(wordPopTimer);
+  wordPopTimer = window.setTimeout(() => {
+    wordPop.classList.add("hidden");
+    wordPop.classList.remove("word-pop-live");
+  }, 600);
+}
 
-  titleTimer = window.setInterval(() => {
-    const titles = [
-      "PIN.exe // MAXIMUM MLG",
-      "PIN.exe // AIRHORN MODE",
-      "PIN.exe // 420 FPS",
-      "PIN.exe // ULTRA CHAOS",
-    ];
-    document.title = titles[Math.floor(Math.random() * titles.length)];
-  }, 2400);
+function flashImpact() {
+  impactFlash.classList.remove("impact-flash-live");
+  void impactFlash.offsetWidth;
+  impactFlash.classList.add("impact-flash-live");
+}
+
+function triggerImpactCue(cue) {
+  const scale = 1.2 + Math.random() * 0.23;
+  const x = (Math.random() - 0.5) * window.innerWidth * 0.12;
+  const y = (Math.random() - 0.5) * window.innerHeight * 0.1;
+
+  setVideoPose(scale, x, y);
+  video.classList.add("video-hit");
+  flashImpact();
+  showWordPop(cue.label);
+
+  if (audioContext && audioContext.state === "running") {
+    playImpactStab(cue.label);
+  }
+
+  window.clearTimeout(hitResetTimer);
+  hitResetTimer = window.setTimeout(() => {
+    setVideoPose(1.08, 0, 0);
+    video.classList.remove("video-hit");
+  }, 180);
+}
+
+function spawnMemeShot(forceLarge = false) {
+  if (!memeLayer || memeImages.length === 0) return;
+
+  const shot = document.createElement("img");
+  const fileName = memeImages[Math.floor(Math.random() * memeImages.length)];
+  const life = 480 + Math.random() * 700;
+  const size = forceLarge
+    ? 42 + Math.random() * 24
+    : 18 + Math.random() * 18;
+
+  shot.className = "meme-shot";
+  if (forceLarge || Math.random() > 0.7) {
+    shot.classList.add("meme-shot-xl");
+  }
+
+  shot.src = fileName;
+  shot.alt = "";
+  shot.loading = "eager";
+  shot.decoding = "async";
+  shot.style.setProperty("--meme-x", `${10 + Math.random() * 80}%`);
+  shot.style.setProperty("--meme-y", `${12 + Math.random() * 76}%`);
+  shot.style.setProperty("--meme-size", `${size}vw`);
+  shot.style.setProperty("--meme-rotate", `${-22 + Math.random() * 44}deg`);
+  shot.style.setProperty("--meme-life", `${life.toFixed(0)}ms`);
+
+  memeLayer.appendChild(shot);
+  window.setTimeout(() => shot.remove(), life);
+}
+
+function runCueLoop() {
+  const currentTime = video.currentTime;
+
+  if (currentTime + 0.12 < lastVideoTime) {
+    nextCueIndex = 0;
+  }
+
+  while (nextCueIndex < impactCues.length && currentTime >= impactCues[nextCueIndex].time) {
+    triggerImpactCue(impactCues[nextCueIndex]);
+    nextCueIndex += 1;
+  }
+
+  lastVideoTime = currentTime;
+  cueLoopFrame = window.requestAnimationFrame(runCueLoop);
+}
+
+function startCueLoop() {
+  if (cueLoopFrame) return;
+  resetCueTracking();
+  cueLoopFrame = window.requestAnimationFrame(runCueLoop);
+}
+
+function stopCueLoop() {
+  if (!cueLoopFrame) return;
+  window.cancelAnimationFrame(cueLoopFrame);
+  cueLoopFrame = 0;
 }
 
 function startSoundLoop() {
@@ -208,8 +325,20 @@ function startSoundLoop() {
     if (audioContext && audioContext.state === "running") {
       playRandomEffect();
     }
-    const delay = 1400 + Math.random() * 2600;
+    const delay = 2600 + Math.random() * 2600;
     soundLoopTimer = window.setTimeout(fire, delay);
+  };
+
+  fire();
+}
+
+function startMemeLoop() {
+  if (memeTimer) return;
+
+  const fire = () => {
+    spawnMemeShot(Math.random() > 0.78);
+    const delay = 240 + Math.random() * 820;
+    memeTimer = window.setTimeout(fire, delay);
   };
 
   fire();
@@ -220,25 +349,17 @@ function bootChaos() {
   chaosBooted = true;
 
   document.body.classList.add("chaos-live");
-  startVisualLoop();
   startSoundLoop();
-
-  for (let index = 0; index < 3; index += 1) {
-    window.setTimeout(() => {
-      spawnBurst(window.innerWidth * (0.3 + Math.random() * 0.4), window.innerHeight * (0.2 + Math.random() * 0.5));
-    }, index * 180);
-  }
+  startMemeLoop();
+  triggerImpactCue({ label: "PIN" });
+  spawnMemeShot(true);
 }
-
-document.body.addEventListener("pointerdown", (event) => {
-  spawnBurst(event.clientX, event.clientY);
-});
 
 chaosButton.addEventListener("click", async () => {
   bootChaos();
   await unlockAudio();
-  playBassDrop();
-  playLaser();
+  triggerImpactCue({ label: Math.random() > 0.5 ? "PIN" : "BUP" });
+  spawnMemeShot(true);
 });
 
 soundButton.addEventListener("click", async () => {
@@ -250,9 +371,31 @@ audioUnlock.addEventListener("click", async () => {
 });
 
 video.addEventListener("play", () => {
+  videoFallback.classList.add("hidden");
+  startCueLoop();
   if (!chaosBooted) {
     bootChaos();
   }
 });
 
+video.addEventListener("pause", () => {
+  stopCueLoop();
+});
+
+video.addEventListener("seeking", () => {
+  resetCueTracking();
+});
+
+video.addEventListener("error", () => {
+  videoFallback.classList.remove("hidden");
+  setAudioLabel("NO VIDEO", "status-hot");
+});
+
+if (fxVideo) {
+  fxVideo.addEventListener("error", () => {
+    setAudioLabel("FX MISSING", "status-hot");
+  });
+}
+
+setVideoPose(1.08, 0, 0);
 attemptAutoplay();
