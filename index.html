@@ -3,88 +3,66 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PIN.exe // MAXIMUM MLG</title>
+    <title>PIN.exe // IMPACT MODE</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <video
-      id="bg-video"
-      class="bg-video"
-      autoplay
-      loop
-      playsinline
-      preload="auto"
-    >
-      <source src="pin-video.mp4" type="video/mp4" />
-    </video>
+    <div class="video-shell">
+      <video
+        id="bg-video"
+        class="bg-video"
+        autoplay
+        loop
+        playsinline
+        preload="auto"
+      >
+        <source src="pin-video.mp4" type="video/mp4" />
+      </video>
+
+      <video
+        id="fx-video"
+        class="fx-video"
+        loop
+        playsinline
+        preload="auto"
+        aria-hidden="true"
+      >
+        <source src="videoplayback (1).mp4" type="video/mp4" />
+      </video>
+    </div>
 
     <div id="video-fallback" class="video-fallback hidden">
       VIDEO FAILED TO LOAD. MAKE SURE <code>pin-video.mp4</code> IS IN THE SAME
       FOLDER AS <code>index.html</code>.
     </div>
 
-    <div class="gradient-wash"></div>
+    <div id="impact-flash" class="impact-flash" aria-hidden="true"></div>
+    <div id="word-pop" class="word-pop hidden" aria-hidden="true">PIN</div>
+    <div id="meme-layer" class="meme-layer" aria-hidden="true"></div>
     <div class="scanlines"></div>
     <div class="noise"></div>
     <div class="vignette"></div>
 
-    <main class="page-shell">
+    <main class="ui-layer">
       <header class="hud hud-top">
         <div class="hud-chip">PIN.exe</div>
-        <div class="hud-chip hud-chip-rainbow">360 NO-SCOPE MODE</div>
         <div class="hud-chip">
           AUDIO STATUS:
           <span id="audio-state" class="status-hot">BOOTING</span>
         </div>
+        <div class="hud-chip hud-chip-rainbow">IMPACT CUES ARMED</div>
+        <div class="hud-chip">MEME FLASHES: LIVE</div>
       </header>
 
-      <section class="hero-panel">
-        <p class="eyebrow">ULTRA TURBO WEB EXPERIENCE</p>
-        <h1 class="headline">
-          PIN
-          <span>//</span>
-          MLG CHAOS LOOP
-        </h1>
-        <p class="subcopy">
-          Full-screen video. Random stingers. Brainrot visuals. Zero restraint.
-        </p>
-
-        <div class="hero-actions">
-          <button id="chaos-button" class="chaos-button" type="button">
-            ENGAGE MAXIMUM CHAOS
-          </button>
-          <button id="sound-button" class="sound-button" type="button">
-            FORCE SOUND ON
-          </button>
-        </div>
-      </section>
-
-      <aside class="sticker-cloud" aria-hidden="true">
-        <div class="sticker sticker-a">AIRHORN_READY.wav</div>
-        <div class="sticker sticker-b">420 FPS</div>
-        <div class="sticker sticker-c">MONTAGE MODE</div>
-        <div class="sticker sticker-d">GG EZ</div>
-        <div class="sticker sticker-e">PINNED + BUFFED</div>
-        <div class="sticker sticker-f">1v9 ENERGY</div>
-      </aside>
-
-      <section class="killfeed-wrap" aria-label="Live meme feed">
-        <div class="killfeed-title">LIVE MEME FEED</div>
-        <div id="killfeed" class="killfeed"></div>
-      </section>
-
       <footer class="hud hud-bottom">
-        <div class="ticker">
-          <span>VIDEO LOOP ARMED</span>
-          <span>CHAOS ENGINE ONLINE</span>
-          <span>PIN HAS ENTERED THE CHAT</span>
-          <span>ABSOLUTE CINEMA</span>
-          <span>CLUTCH OR KICK</span>
-        </div>
+        <button id="chaos-button" class="chaos-button" type="button">
+          BOOST IMPACT
+        </button>
+        <button id="sound-button" class="sound-button" type="button">
+          FORCE SOUND ON
+        </button>
       </footer>
     </main>
-
-    <div id="burst-layer" class="burst-layer" aria-hidden="true"></div>
 
     <div id="audio-gate" class="audio-gate hidden">
       <div class="audio-card">
