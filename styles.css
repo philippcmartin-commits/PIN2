@@ -1,3 +1,9 @@
+html {
+  --float-x: 0px;
+  --float-y: 0px;
+  --float-scale: 1;
+}
+
 html,
 body {
   margin: 0;
@@ -18,6 +24,9 @@ body {
   height: 100%;
   object-fit: cover;
   background: #000;
+  transform: translate3d(var(--float-x), var(--float-y), 0)
+    scale(var(--float-scale));
+  transition: transform 2200ms ease-in-out;
 }
 
 .hidden {
@@ -36,6 +45,32 @@ body {
   background: rgba(0, 0, 0, 0.88);
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+.side-controls {
+  position: fixed;
+  right: 1rem;
+  top: 50%;
+  z-index: 3;
+  transform: translateY(-50%);
+}
+
+.side-button {
+  cursor: pointer;
+  border: 0;
+  padding: 0.9rem 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: #000;
+  font: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.side-button.is-on {
+  background: #d6ff3b;
 }
 
 .audio-gate {
@@ -68,4 +103,15 @@ body {
   background: #fff;
   color: #000;
   font: inherit;
+}
+
+@media (max-width: 640px) {
+  .side-controls {
+    right: 0.7rem;
+  }
+
+  .side-button {
+    padding: 0.7rem 0.75rem;
+    font-size: 0.72rem;
+  }
 }
