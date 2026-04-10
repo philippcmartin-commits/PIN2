@@ -16,10 +16,16 @@
       preload="auto"
     >
       <source
-        src="videoplayback (online-video-cutter.com).mp4"
+        src="https://drive.usercontent.google.com/download?id=1-OP3ka7h1-9nyzGzfJZ4nk7O3WF7XcPN&export=view&authuser=0"
         type="video/mp4"
       />
+      <source src="pin-video.mp4" type="video/mp4" />
     </video>
+
+    <div id="video-fallback" class="video-fallback hidden">
+      VIDEO FAILED TO LOAD. THE PAGE TRIED THE PUBLIC GOOGLE DRIVE STREAM FIRST
+      AND THEN THE LOCAL <code>pin-video.mp4</code> FALLBACK.
+    </div>
 
     <div class="gradient-wash"></div>
     <div class="scanlines"></div>
